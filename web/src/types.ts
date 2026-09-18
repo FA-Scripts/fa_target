@@ -1,0 +1,62 @@
+export type Theme = {
+  preset: string;
+  accent: string;
+  surface: string;
+  text: string;
+  mutedText: string;
+  opacity: number;
+  radius: number;
+  scale: number;
+  position: "left" | "center" | "right";
+  font: string;
+  animations: boolean;
+  indicator: boolean;
+  highlight: boolean;
+};
+export type FontDefinition = {
+  id: string;
+  label: string;
+  family: string;
+  file?: string;
+  weight?: string;
+};
+export type TargetOption = {
+  name?: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  iconColor?: string;
+  badge?: string;
+  accent?: string;
+  key?: string;
+  hold?: number;
+  hide?: boolean;
+};
+export type OptionRef = TargetOption & {
+  targetType: string;
+  targetId: number;
+  zoneId?: number;
+  slot: number;
+};
+export type NuiMessage = {
+  event: string;
+  state?: boolean;
+  options?: Record<string, TargetOption[]>;
+  zones?: TargetOption[][];
+  mode?: string;
+  theme?: Theme;
+  admin?: boolean;
+  allowed?: Record<string, boolean>;
+  presets?: string[];
+  status?: "pending" | "success" | "error";
+  message?: string;
+  requestId?: string;
+  slot?: number;
+  pressed?: boolean;
+  key?: string;
+  duration?: number;
+  anchor?: { visible?: boolean; x?: number; y?: number };
+  hasTarget?: boolean;
+  fonts?: FontDefinition[];
+  resetTheme?: Theme;
+};
