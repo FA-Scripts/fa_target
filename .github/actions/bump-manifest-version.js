@@ -1,8 +1,19 @@
-const fxManifest = await Bun.file('./fxmanifest.lua').text();
+const fs = require('node:fs');
 
-let newVersion = process.env.TGT_RELEASE_VERSION;
-newVersion = newVersion.replace('v', '')
+const releaseTag = process.env.TGT_RELEASE_VERSION ?? '';
+const version = releaseTag.replace(/^v/, '');
 
-const newFileContent = fxManifest.replace(/\bversion\s+(.*)$/gm, `version '${newVersion}'`);
+if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+  throw new Error(`Invalid release tag: ${releaseTag}`);
+}
 
-await Bun.write('./fxmanifest.lua', newFileContent);
+const manifestPath = './fxmanifest.lua';
+const manifest = fs.readFileSync(manifestPath, 'utf8');
+const versionPattern = /^version\s+['"][^'"]+['"]$/m;
+
+if (!versionPattern.test(manifest)) {
+  throw new Error('Could not locate the fxmanifest version field');
+}
+
+const updated = manifest.replace(versionPattern, `version '${version}'`);
+fs.writeFileSync(manifestPath, updated);
