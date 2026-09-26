@@ -38,7 +38,7 @@ Only local `.woff2` filenames are accepted. External URLs and traversal paths ar
 
 Existing ox_target calls remain valid:
 
-`fa_target` registers explicit `__cfx_export_ox_target_*` handlers in addition to the manifest replacement, so `exports.ox_target:*` calls remain available even when the resource folder is named `fa_target`.
+`fa_target` registers the full `__cfx_export_ox_target_*` compatibility layer before its main client script starts. Together with `provide 'ox_target'`, this keeps `exports.ox_target:*` calls available when the resource folder is named `fa_target`.
 
 ```lua
 exports.ox_target:addBoxZone({

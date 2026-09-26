@@ -44,12 +44,25 @@ local mouseButton = GetConvarInt('fa_target:leftClick', GetConvarInt('ox_target:
 local debug = GetConvarInt('fa_target:debug', GetConvarInt('ox_target:debug', 0)) == 1
 local vec0 = vec3(0, 0, 0)
 
-local function getTargetAnchor(entity, coords)
+local function getTargetAnchor(entity, coords, targetZones)
     if entity and entity > 0 and DoesEntityExist(entity) then
         local entityCoords = GetEntityCoords(entity)
         coords = vec3(entityCoords.x, entityCoords.y, entityCoords.z + 0.5)
+    elseif targetZones then
+        for i = 1, #targetZones do
+            local zone = targetZones[i]
+            local zoneOptions = zone.options
+
+            for j = 1, #zoneOptions do
+                if not zoneOptions[j].hide then
+                    coords = zone.coords
+                    goto zoneAnchorFound
+                end
+            end
+        end
     end
 
+    ::zoneAnchorFound::
     if not coords then return { visible = false } end
 
     local cameraCoords = GetGameplayCamCoord()
@@ -278,8 +291,9 @@ AddEventHandler('fa_target:inputKey', function(key, pressed)
         end
     end
 
-    if key == Config.Interaction.confirmKey:upper() then
-        handleTargetInput('confirm:keyboard', visibleTargets[1], pressed)
+    local firstTarget = visibleTargets[1]
+    if key == Config.Interaction.confirmKey:upper() and firstTarget and not firstTarget.option.key then
+        handleTargetInput('confirm:keyboard', firstTarget, pressed)
     end
 end)
 
@@ -296,7 +310,10 @@ AddEventHandler('fa_target:inputSlot', function(slot, pressed)
         end
     end
 
-    handleTargetInput(('slot:%d'):format(slot), visibleTargets[slot], pressed)
+    local slotTarget = visibleTargets[slot]
+    if slotTarget and not slotTarget.option.key then
+        handleTargetInput(('slot:%d'):format(slot), slotTarget, pressed)
+    end
 end)
 
 for slot = 1, 5 do
@@ -365,10 +382,13 @@ local function startTargeting()
             end
 
             if hasTarget then
-                if IsControlJustPressed(0, 191) then
-                    handleTargetInput('confirm:controller', visibleTargets[1], true)
-                elseif IsControlJustReleased(0, 191) then
-                    handleTargetInput('confirm:controller', visibleTargets[1], false)
+                local firstTarget = visibleTargets[1]
+                if firstTarget and not firstTarget.option.key then
+                    if IsControlJustPressed(0, 191) then
+                        handleTargetInput('confirm:controller', firstTarget, true)
+                    elseif IsControlJustReleased(0, 191) then
+                        handleTargetInput('confirm:controller', firstTarget, false)
+                    end
                 end
             end
 
@@ -540,7 +560,7 @@ local function startTargeting()
 
                 local anchor
                 if Config.Interaction.mode == 'dui' then
-                    anchor = getTargetAnchor(entityHit, endCoords)
+                    anchor = getTargetAnchor(hasEntityInteraction and entityHit or nil, endCoords, nearbyZones)
                     lastAnchorVisible = anchor.visible
                     lastAnchorX, lastAnchorY = anchor.x, anchor.y
                 end
@@ -561,7 +581,7 @@ local function startTargeting()
         end
 
         if hasTarget and Config.Interaction.mode == 'dui' then
-            local anchor = getTargetAnchor(entityHit, endCoords)
+            local anchor = getTargetAnchor(hasEntityInteraction and entityHit or nil, endCoords, nearbyZones)
             if anchor.visible and (not lastAnchorVisible or not lastAnchorX
                 or math.abs(anchor.x - lastAnchorX) > 0.0015 or math.abs(anchor.y - lastAnchorY) > 0.0015) then
                 lastAnchorVisible = true

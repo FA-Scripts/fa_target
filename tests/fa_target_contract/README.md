@@ -1,7 +1,9 @@
 # Live contract test
 
 Copy this folder as a separate resource, start it after `fa_target`, and run
-`/fatargettest`. It registers native FA, ox_target and qb-target fixtures near
+`/fatargettest`. Its `dependency 'ox_target'` intentionally resolves through
+`fa_target`'s manifest replacement, then it registers native FA, ox_target
+(`addBoxZone` and `addSphereZone`) and qb-target fixtures near
 the player. Validate Focus, Classic and DUI presentation; confirm that the spawned
 ped is detected without receiving the unsafe native outline, while the currently
 targeted object or vehicle can be outlined. Also test keys

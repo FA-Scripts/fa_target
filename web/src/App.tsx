@@ -212,7 +212,11 @@ function TargetDisplay({
   onBegin,
   onCancel,
 }: TargetDisplayProps) {
-  if (items.length === 0 || (mode === "dui" && !anchor.visible)) return null;
+  if (
+    (items.length === 0 && mode !== "classic") ||
+    (mode === "dui" && !anchor.visible)
+  )
+    return null;
   const panelHeight =
     items.length === 1 ? 54 : Math.min(330, 42 + items.length * 44);
   const anchorY = anchor.y * window.innerHeight;
@@ -239,62 +243,71 @@ function TargetDisplay({
       style={shellStyle}
     >
       {theme.indicator && (
-        <div className="reticle ready" aria-hidden="true">
+        <div
+          className={`reticle ${items.length > 0 ? "ready" : ""}`}
+          aria-hidden="true"
+        >
           <i />
         </div>
       )}
-      {mode === "dui" && <span className="dui-connector" aria-hidden="true" />}
-      <section className={`target-menu ${items.length === 1 ? "single" : ""}`}>
-        <div className="menu-title">
-          <span>INTERACTION</span>
-          <small>ALT + CLICK FOR CURSOR</small>
-        </div>
-        <div className="option-list">
-          {items.map((option, index) => (
-            <button
-              className={`option ${holding === option.slot ? "holding" : ""}`}
-              style={
-                {
-                  "--hold": `${option.hold ?? 0}ms`,
-                  "--option-accent": option.accent ?? theme.accent,
-                  "--option-accent-rgb": hexToRgb(
-                    option.accent ?? theme.accent,
-                  ),
-                } as CSSProperties
-              }
-              key={`${option.targetType}-${option.targetId}-${option.zoneId ?? 0}`}
-              onMouseDown={() => onBegin?.(option)}
-              onMouseUp={onCancel}
-              onMouseLeave={onCancel}
-              type="button"
-            >
-              <span
-                className={`keycap ${index > 4 && !option.key ? "empty" : ""}`}
-              >
-                {option.key ?? (index < 5 ? index + 1 : "·")}
-              </span>
-              <i
-                className={option.icon ?? "fa-solid fa-circle-dot"}
-                style={{ color: option.iconColor }}
-              />
-              <span className="copy">
-                <strong>{option.label}</strong>
-                {option.description && <small>{option.description}</small>}
-              </span>
-              {option.badge && <b className="badge">{option.badge}</b>}
-              <span className="hold-ring" />
-            </button>
-          ))}
-        </div>
-        {status?.type && (
-          <div className={`feedback ${status.type}`}>
-            {status.type === "pending" && (
-              <i className="fa-solid fa-spinner fa-spin" />
-            )}
-            {status.message ?? status.type}
+      {mode === "dui" && items.length > 0 && (
+        <span className="dui-connector" aria-hidden="true" />
+      )}
+      {items.length > 0 && (
+        <section
+          className={`target-menu ${items.length === 1 ? "single" : ""}`}
+        >
+          <div className="menu-title">
+            <span>INTERACTION</span>
+            <small>ALT + CLICK FOR CURSOR</small>
           </div>
-        )}
-      </section>
+          <div className="option-list">
+            {items.map((option, index) => (
+              <button
+                className={`option ${holding === option.slot ? "holding" : ""}`}
+                style={
+                  {
+                    "--hold": `${option.hold ?? 0}ms`,
+                    "--option-accent": option.accent ?? theme.accent,
+                    "--option-accent-rgb": hexToRgb(
+                      option.accent ?? theme.accent,
+                    ),
+                  } as CSSProperties
+                }
+                key={`${option.targetType}-${option.targetId}-${option.zoneId ?? 0}`}
+                onMouseDown={() => onBegin?.(option)}
+                onMouseUp={onCancel}
+                onMouseLeave={onCancel}
+                type="button"
+              >
+                <span
+                  className={`keycap ${index > 4 && !option.key ? "empty" : ""}`}
+                >
+                  {option.key ?? (index < 5 ? index + 1 : "·")}
+                </span>
+                <i
+                  className={option.icon ?? "fa-solid fa-circle-dot"}
+                  style={{ color: option.iconColor }}
+                />
+                <span className="copy">
+                  <strong>{option.label}</strong>
+                  {option.description && <small>{option.description}</small>}
+                </span>
+                {option.badge && <b className="badge">{option.badge}</b>}
+                <span className="hold-ring" />
+              </button>
+            ))}
+          </div>
+          {status?.type && (
+            <div className={`feedback ${status.type}`}>
+              {status.type === "pending" && (
+                <i className="fa-solid fa-spinner fa-spin" />
+              )}
+              {status.message ?? status.type}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
@@ -799,7 +812,8 @@ export function App() {
         return;
       }
       const slot = Number(event.key);
-      if (slot >= 1 && slot <= 5 && items[slot - 1]) begin(items[slot - 1]);
+      const slotItem = slot >= 1 && slot <= 5 ? items[slot - 1] : undefined;
+      if (slotItem && !slotItem.key) begin(slotItem);
     };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", cancelHold);
@@ -814,6 +828,12 @@ export function App() {
     <main
       style={vars}
       className={`app mode-${mode} pos-${theme.position} preset-${theme.preset} ${theme.animations ? "motion" : ""}`}
+      onMouseDown={(event) => {
+        if (!editor && event.currentTarget === event.target) {
+          cancelHold();
+          void fetchNui("setCursor", { state: false });
+        }
+      }}
     >
       {visible && (
         <TargetDisplay

@@ -7,9 +7,6 @@ local api = setmetatable({}, {
     __newindex = function(self, index, value)
         rawset(self, index, value)
         exports(index, value)
-        AddEventHandler(('__cfx_export_ox_target_%s'):format(index), function(setCB)
-            setCB(value)
-        end)
     end
 })
 

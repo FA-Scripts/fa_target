@@ -9,7 +9,7 @@ end)
 
 if GetConvarInt('ox_target:debug', 0) ~= 1 then return end
 
-local ox_target = exports.ox_target
+local ox_target = require 'client.api'
 local drawZones = true
 
 ox_target:addBoxZone({

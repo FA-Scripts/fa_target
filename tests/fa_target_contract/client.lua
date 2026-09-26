@@ -12,6 +12,12 @@ end
 
 RegisterCommand('fatargettest', function()
     local coords = GetEntityCoords(cache.ped)
+    addZone(exports.ox_target:addBoxZone({
+        name = 'fa_contract_ox_box', coords = coords + vec3(0, 3, 0), size = vec3(1.5, 1.5, 2.0),
+        options = {{ name = 'fa_contract_ox_box_press', label = 'ox_target box export', onSelect = function()
+            return { status = 'success', message = 'ox_target addBoxZone works' }
+        end }}
+    }))
     addZone(exports.ox_target:addSphereZone({
         name = 'fa_contract_sphere', coords = coords + vec3(2, 0, 0), radius = 1.5,
         options = {{ name = 'fa_contract_press', label = 'Press test', key = 'E', onSelect = function()
@@ -22,7 +28,10 @@ RegisterCommand('fatargettest', function()
     exports['qb-target']:AddBoxZone('fa_contract_qb', coords + vec3(-2, 0, 0), 2.0, 2.0, {
         heading = 0, minZ = coords.z - 1, maxZ = coords.z + 1, debugPoly = true
     }, { distance = 3.0, options = {{ label = 'QB compatibility', icon = 'fa-solid fa-check',
-        action = function() print('[fa_target_contract] qb-target action passed') end }} })
+        action = function()
+            print('[fa_target_contract] qb-target action passed')
+            return { status = 'success', message = 'QB compatibility works' }
+        end }} })
 
     local model = `a_m_m_business_01`
     lib.requestModel(model)

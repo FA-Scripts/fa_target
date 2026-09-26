@@ -21,6 +21,7 @@ shared_scripts {
 }
 
 client_scripts {
+    'client/compat/exports.lua',
     'client/main.lua',
 }
 
@@ -45,6 +46,7 @@ files {
     'client/framework/qb.lua',
     'client/framework/inventory.lua',
     'client/compat/qtarget.lua',
+    'client/compat/exports.lua',
     'client/theme.lua',
     'shared/theme.lua',
 }
