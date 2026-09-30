@@ -43,7 +43,28 @@ jobs:
           cp ./{LICENSE,README.md,CHANGELOG.md,UPSTREAM.md,fxmanifest.lua,config.lua} ./temp/fa_target/
           cp -r ./{client,server,shared,locales} ./temp/fa_target/
           cp -r ./web/dist ./temp/fa_target/web/
-          cd ./temp && zip -r ../fa_target.zip ./fa_target
+
+          test -f ./temp/fa_target/web/dist/index.html
+
+          while IFS= read -r file; do
+            case "$file" in
+              LICENSE|README.md|CHANGELOG.md|UPSTREAM.md|fxmanifest.lua|config.lua|client/*|server/*|shared/*|locales/*|web/dist/*) ;;
+              *) echo "Unexpected release file: $file" >&2; exit 1 ;;
+            esac
+          done < <(find ./temp/fa_target -type f -printf '%P\n')
+
+          cd ./temp && zip -X -9 -r ../fa_target.zip ./fa_target
+
+      - name: Verify drag-and-drop archive
+        run: |
+          unzip -t fa_target.zip
+          unzip -Z1 fa_target.zip | grep -Fxq 'fa_target/fxmanifest.lua'
+          unzip -Z1 fa_target.zip | grep -Fxq 'fa_target/web/dist/index.html'
+
+          if unzip -Z1 fa_target.zip | grep -Eq '(^|/)(node_modules|src|tests|\.git|\.github)(/|$)|(^|/)package(-lock)?\.json$'; then
+            echo 'Development-only files found in fa_target.zip' >&2
+            exit 1
+          fi
 
       - name: Create release
         uses: softprops/action-gh-release@v2
