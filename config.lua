@@ -4,6 +4,10 @@ Config.Framework = 'auto' -- auto, standalone, esx, qbcore, qbox, ox
 Config.Inventory = 'auto' -- auto, framework, ox_inventory, qb-inventory, qs-inventory, codem-inventory
 Config.Locale = 'en'
 
+Config.AdminGroups = {
+    'admin',
+}
+
 Config.Interaction = {
     mode = 'focus', -- focus, classic or dui
     resourceModes = {}, -- ['legacy_resource'] = 'classic'

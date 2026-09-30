@@ -28,11 +28,20 @@ local exportNames = {
     'resolveAction',
 }
 
-for i = 1, #exportNames do
-    local exportName = exportNames[i]
-    AddEventHandler(('__cfx_export_ox_target_%s'):format(exportName), function(setCB)
-        setCB(api[exportName])
-    end)
+local aliases = { 'fa_target', 'ox_target' }
+local currentResource = GetCurrentResourceName()
+
+for aliasIndex = 1, #aliases do
+    local alias = aliases[aliasIndex]
+
+    if alias ~= currentResource then
+        for exportIndex = 1, #exportNames do
+            local exportName = exportNames[exportIndex]
+            AddEventHandler(('__cfx_export_%s_%s'):format(alias, exportName), function(setCB)
+                setCB(api[exportName])
+            end)
+        end
+    end
 end
 
 require 'client.compat.qtarget'

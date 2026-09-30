@@ -40,11 +40,11 @@ RegisterCommand('fatheme', function()
     if allowPlayerCustomization then openEditor(false) end
 end, false)
 
-RegisterCommand('fathemeadmin', function()
+RegisterNetEvent('fa_target:openAdminTheme', function()
     lib.callback('fa_target:canEditTheme', false, function(allowed)
         if allowed then openEditor(true) end
     end)
-end, false)
+end)
 
 RegisterNUICallback('previewTheme', function(data, cb)
     local preview = editorAdmin and Theme.sanitize(data, Config.Theme.default)

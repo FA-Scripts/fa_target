@@ -10,5 +10,8 @@ targeted object or vehicle can be outlined. Also test keys
 1-5, E/G, mouse, controller, hold cancellation, LOS behind walls and restart cleanup. Run
 `/fatargettestclean` afterwards.
 
+While the fixture is enabled, restart `ox_target`. The fixture listens for `fa_target:ready`
+and must recreate its zones and ped interaction without running `/fatargettest` again.
+
 Repeat on OneSync with standalone, ESX, QBCore and Qbox. Static repository tests
 cannot validate GTA natives, resource `provide` resolution or resmon timings.

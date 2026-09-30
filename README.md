@@ -6,20 +6,38 @@ Modern, free and open-source interaction system for FiveM. FA Target is based on
 
 1. Install and start `ox_lib` 3.30.0 or newer.
 2. Build the UI with `cd web && npm install && npm run build`, or use a release archive containing `web/dist`.
-3. Place the folder as `fa_target` and add `ensure fa_target` after `ox_lib`.
+3. Keep the resource folder named `ox_target` and add `ensure ox_target` after `ox_lib`.
 4. Stop/remove the old target resource. `provide` entries satisfy dependencies on the supported target resources.
-5. Grant theme administration where required: `add_ace group.admin fa_target.theme allow`.
+5. Configure administrative ACE principals in `Config.AdminGroups`.
 
 Do not run FA Target alongside another resource providing `ox_target`, `qb-target`, or `qtarget`.
+
+The `ox_target` folder name is required when `inventory:target` is enabled. `ox_inventory`
+checks `GetResourceState('ox_target')` directly; FiveM's `provide` metadata and export aliases
+cannot change that native result. The branded `exports.fa_target:*` API remains available when
+the folder is named `ox_target`.
 
 ## Configuration
 
 `config.lua` controls framework/inventory detection, Focus, Classic or DUI mode, keybinds, blocking states, visual indicators, and player theme permissions. DUI uses the regular NUI renderer anchored to the raycast world coordinate, so it does not create a separate browser instance for every target. Explicit bridge values take precedence over auto-detection.
 
 - `/fatheme` opens player preferences when enabled.
-- `/fathemeadmin` opens the server theme editor for players with `fa_target.theme`.
+- `/fathemeadmin` opens the server theme editor for configured administrators.
 - Server themes persist in resource KVP and update connected players live.
 - Player preferences persist in client KVP and only override fields allowed by the server.
+
+`Config.AdminGroups` accepts group names such as `admin` (or complete ACE principals) and grants
+each configured group both `fa_target.theme` and
+`command.fathemeadmin`. You can also grant either permission manually, including to one player:
+
+```cfg
+add_ace group.admin command.fathemeadmin allow
+add_ace identifier.license:YOUR_LICENSE command.fathemeadmin allow
+```
+
+Resources which support runtime target replacement can listen for the client event
+`fa_target:ready` and register their target options again after FA Target starts. FA Target does
+not restart other resources automatically.
 
 ### Local fonts
 
@@ -38,7 +56,9 @@ Only local `.woff2` filenames are accepted. External URLs and traversal paths ar
 
 Existing ox_target calls remain valid:
 
-`fa_target` registers the full `__cfx_export_ox_target_*` compatibility layer before its main client script starts. Together with `provide 'ox_target'`, this keeps `exports.ox_target:*` calls available when the resource folder is named `fa_target`.
+FA Target registers aliases in both directions before its main client script starts. With the
+recommended `ox_target` folder name, existing `exports.ox_target:*` calls and the branded
+`exports.fa_target:*` extensions are both available.
 
 ```lua
 exports.ox_target:addBoxZone({

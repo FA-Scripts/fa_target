@@ -49,6 +49,7 @@ files {
     'client/compat/exports.lua',
     'client/theme.lua',
     'shared/theme.lua',
+    'server/permissions.lua',
 }
 
 provide 'ox_target'

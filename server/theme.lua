@@ -1,4 +1,5 @@
 local Theme = require 'shared.theme'
+local Permissions = require 'server.permissions'
 local KVP_KEY = 'fa_target:serverTheme'
 local serverTheme = Theme.sanitize(Config.Theme.default)
 
@@ -13,12 +14,20 @@ lib.callback.register('fa_target:getTheme', function()
 end)
 
 lib.callback.register('fa_target:canEditTheme', function(source)
-    return source == 0 or IsPlayerAceAllowed(source, 'fa_target.theme')
+    return Permissions.isAdmin(source)
+end)
+
+lib.addCommand('fathemeadmin', {
+    help = 'Open the FA Target server theme editor.',
+    restricted = true,
+}, function(source)
+    if source == 0 then return end
+    TriggerClientEvent('fa_target:openAdminTheme', source)
 end)
 
 RegisterNetEvent('fa_target:saveServerTheme', function(theme)
     local src = source
-    if src ~= 0 and not IsPlayerAceAllowed(src, 'fa_target.theme') then return end
+    if not Permissions.isAdmin(src) then return end
     serverTheme = Theme.sanitize(theme, serverTheme)
     SetResourceKvp(KVP_KEY, json.encode(serverTheme))
     TriggerClientEvent('fa_target:serverThemeChanged', -1, serverTheme)

@@ -13,4 +13,7 @@
 - Fixed the Classic mode aiming dot so it remains visible while targeting before an interaction is found.
 - Fixed DUI zone interactions to anchor to the configured zone position instead of the moving raycast hit point.
 - Fixed explicit option keys so an action labelled `G` is not also triggered by slot `1`, default confirm `E`, or controller confirm.
+- Added ready lifecycle events for integrations that re-register target options after a restart.
+- Added `Config.AdminGroups`, managed ACE registration and native command ACE support for `/fathemeadmin`.
+- Added bidirectional `fa_target`/`ox_target` export aliases so the resource can use the `ox_target` folder name required by ox_inventory.
 - Added explicit/automatic ESX, QBCore, Qbox, ox_core and inventory bridge selection.

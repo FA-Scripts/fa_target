@@ -1,5 +1,6 @@
 local createdZones = {}
 local testPed
+local testEnabled = false
 
 local function assertValue(value, message)
     if not value then error(('FA Target contract failed: %s'):format(message), 2) end
@@ -10,7 +11,21 @@ local function addZone(id)
     assertValue(exports.fa_target:zoneExists(id), ('zone %s was not registered'):format(id))
 end
 
-RegisterCommand('fatargettest', function()
+local function cleanup()
+    for i = 1, #createdZones do exports.fa_target:removeZone(createdZones[i], true) end
+    table.wipe(createdZones)
+
+    if testPed and DoesEntityExist(testPed) then
+        exports.fa_target:removeLocalEntity(testPed, 'fa_contract_hold')
+        DeleteEntity(testPed)
+    end
+
+    testPed = nil
+end
+
+local function registerFixtures()
+    cleanup()
+
     local coords = GetEntityCoords(cache.ped)
     addZone(exports.ox_target:addBoxZone({
         name = 'fa_contract_ox_box', coords = coords + vec3(0, 3, 0), size = vec3(1.5, 1.5, 2.0),
@@ -48,15 +63,20 @@ RegisterCommand('fatargettest', function()
     }})
     SetModelAsNoLongerNeeded(model)
     print('[fa_target_contract] registrations passed; test UI, LOS, keys, hold and cleanup in game')
-end, false)
-
-local function cleanup()
-    for i = 1, #createdZones do exports.fa_target:removeZone(createdZones[i]) end
-    if testPed and DoesEntityExist(testPed) then
-        exports.fa_target:removeLocalEntity(testPed, 'fa_contract_hold')
-        DeleteEntity(testPed)
-    end
 end
 
-RegisterCommand('fatargettestclean', cleanup, false)
+RegisterCommand('fatargettest', function()
+    testEnabled = true
+    registerFixtures()
+end, false)
+
+RegisterCommand('fatargettestclean', function()
+    testEnabled = false
+    cleanup()
+end, false)
+
+AddEventHandler('fa_target:ready', function()
+    if testEnabled then registerFixtures() end
+end)
+
 AddEventHandler('onResourceStop', function(resource) if resource == GetCurrentResourceName() then cleanup() end end)

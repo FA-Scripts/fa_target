@@ -773,3 +773,9 @@ CreateThread(function()
         Wait(500)
     end
 end)
+
+CreateThread(function()
+    Wait(0)
+    TriggerEvent('fa_target:ready')
+    TriggerEvent('ox_target:ready')
+end)
