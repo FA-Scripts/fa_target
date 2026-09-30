@@ -1,6 +1,0 @@
-fx_version 'cerulean'
-game 'gta5'
-dependency 'ox_target'
-dependency 'ox_lib'
-shared_script '@ox_lib/init.lua'
-client_script 'client.lua'
