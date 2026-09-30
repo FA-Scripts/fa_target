@@ -195,7 +195,7 @@ npm run build
 ```
 The production build is generated in ``web/dist``.
 
-> [!INFORMATION]
+> [!NOTE]
 > Release archives already include the compiled ``web/dist`` files.
 
 ## Credits
