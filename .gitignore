@@ -1,5 +1,5 @@
 web/node_modules/
 web/.vite/
 *.log
-/test
+test
 /fa_target.zip
