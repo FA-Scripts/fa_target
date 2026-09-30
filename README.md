@@ -10,9 +10,9 @@
 
 <p align="center">
   <a href="https://docs.fascripts.com/scripts/fa-target/overview">Documentation</a> •
-  <a href="...">Download</a> •
+  <a href="https://github.com/FA-Scripts/fa_target/releases/latest">Download</a> •
   <a href="https://discord.gg/ePYv5V5b8w">Discord</a> •
-  <a href="...">Showcase</a>
+  <a href="...">Showcase [SOON]</a>
 </p>
 
 **FA Target is a modern, free and open-source interaction system for FiveM, built on the proven ``ox_target`` engine.**  
