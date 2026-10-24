@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -8,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { fetchNui, isBrowser } from "./nui";
+import { createPortal } from "react-dom";
 import type {
   FontDefinition,
   NuiMessage,
@@ -59,7 +61,7 @@ const presetThemes: Record<string, Partial<Theme>> = {
     mutedText: "#a5a7af",
     opacity: 0.78,
     radius: 6,
-    scale: 0.96,
+    scale: 1,
   },
   glass: {
     surface: "#171923",
@@ -67,7 +69,7 @@ const presetThemes: Record<string, Partial<Theme>> = {
     mutedText: "#b5b8c8",
     opacity: 0.68,
     radius: 16,
-    scale: 1.02,
+    scale: 1,
   },
   compact: {
     surface: "#101116",
@@ -75,7 +77,7 @@ const presetThemes: Record<string, Partial<Theme>> = {
     mutedText: "#8e909d",
     opacity: 0.94,
     radius: 8,
-    scale: 0.88,
+    scale: 1,
   },
   classic: {
     surface: "#090a0d",
@@ -212,18 +214,32 @@ function TargetDisplay({
   onBegin,
   onCancel,
 }: TargetDisplayProps) {
+  const menuRef = useRef<HTMLElement>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    const measure = () => setPanelHeight(menu.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(menu);
+    return () => observer.disconnect();
+  }, [items.length, mode, anchor.visible]);
   if (
     (items.length === 0 && mode !== "classic") ||
     (mode === "dui" && !anchor.visible)
   )
     return null;
-  const panelHeight =
-    items.length === 1 ? 54 : Math.min(330, 42 + items.length * 44);
   const anchorY = anchor.y * window.innerHeight;
-  const menuY = Math.max(
-    12 - anchorY,
-    Math.min(-20, window.innerHeight - 12 - panelHeight - anchorY),
-  );
+  const menuY = preview
+    ? -25
+    : Math.max(
+        (12 - anchorY) / theme.scale,
+        Math.min(
+          -25,
+          (window.innerHeight - 12 - anchorY) / theme.scale - panelHeight,
+        ),
+      );
   const side = mode === "dui" && anchor.x > 0.72 ? "left" : "right";
   const connectorX = side === "left" ? -20 : 20;
   const connectorY = menuY + 20;
@@ -255,6 +271,7 @@ function TargetDisplay({
       )}
       {items.length > 0 && (
         <section
+          ref={menuRef}
           className={`target-menu ${items.length === 1 ? "single" : ""}`}
         >
           <div className="menu-title">
@@ -264,7 +281,7 @@ function TargetDisplay({
           <div className="option-list">
             {items.map((option, index) => (
               <button
-                className={`option ${holding === option.slot ? "holding" : ""}`}
+                className={`option ${option.description ? "has-description" : ""} ${holding === option.slot ? "holding" : ""}`}
                 style={
                   {
                     "--hold": `${option.hold ?? 0}ms`,
@@ -280,11 +297,9 @@ function TargetDisplay({
                 onMouseLeave={onCancel}
                 type="button"
               >
-                <span
-                  className={`keycap ${index > 4 && !option.key ? "empty" : ""}`}
-                >
-                  {option.key ?? (index < 5 ? index + 1 : "·")}
-                </span>
+                {(option.key || index < 5) && (
+                  <span className="keycap">{option.key ?? index + 1}</span>
+                )}
                 <i
                   className={option.icon ?? "fa-solid fa-circle-dot"}
                   style={{ color: option.iconColor }}
@@ -479,6 +494,7 @@ function ThemeEditor({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState(state.snapshot);
+  const [previewMode, setPreviewMode] = useState("focus");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "error">(
     "idle",
   );
@@ -501,9 +517,9 @@ function ThemeEditor({
     updateTheme(next);
   };
   const editorVars = themeVariables(draft, fonts);
-  return (
+  return createPortal(
     <div className="editor-backdrop">
-      <section className="editor" style={editorVars} aria-label="Theme creator">
+      <section className="editor" aria-label="Theme creator">
         <header>
           <div>
             <h2>{state.admin ? "Server theme" : "Your interface"}</h2>
@@ -518,15 +534,29 @@ function ThemeEditor({
             <i className="fa-solid fa-xmark" />
           </button>
         </header>
+        <div className="preview-toolbar" aria-label="Preview mode">
+          <span>Live preview</span>
+          <div>
+            {["focus", "classic", "dui"].map((mode) => (
+              <button
+                type="button"
+                key={mode}
+                aria-pressed={previewMode === mode}
+                onClick={() => setPreviewMode(mode)}
+              >
+                {mode === "dui" ? "DUI" : mode[0].toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
         <div
-          className={`preview-stage app mode-focus preset-${draft.preset} ${draft.animations ? "motion" : ""}`}
+          className={`preview-stage app mode-${previewMode} preset-${draft.preset} ${draft.animations ? "motion" : ""}`}
           style={editorVars}
         >
-          <span className="preview-label">LIVE PREVIEW</span>
           <TargetDisplay
-            anchor={{ visible: true, x: 0.5, y: 0.55 }}
+            anchor={{ visible: true, x: 0.22, y: 0.3 }}
             items={previewItems}
-            mode="focus"
+            mode={previewMode}
             preview
             theme={draft}
           />
@@ -540,7 +570,7 @@ function ThemeEditor({
               key={preset}
               type="button"
             >
-              {preset}
+              {preset[0].toUpperCase() + preset.slice(1)}
             </button>
           ))}
         </div>
@@ -644,7 +674,19 @@ function ThemeEditor({
           {saveState === "error" && (
             <span className="save-error">Theme could not be saved.</span>
           )}
-          <button onClick={() => updateTheme(state.resetTheme)} type="button">
+          <button
+            onClick={() => {
+              const next = { ...draft };
+              (Object.keys(state.resetTheme) as (keyof Theme)[]).forEach(
+                (key) => {
+                  if (can(key))
+                    Object.assign(next, { [key]: state.resetTheme[key] });
+                },
+              );
+              updateTheme(next);
+            }}
+            type="button"
+          >
             Reset
           </button>
           <button onClick={onClose} type="button">
@@ -661,6 +703,7 @@ function ThemeEditor({
                   draft,
                 );
                 if (response?.ok === false) throw new Error("save failed");
+                if (isBrowser) onClose();
               } catch {
                 setSaveState("error");
               }
@@ -671,7 +714,8 @@ function ThemeEditor({
           </button>
         </footer>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -794,9 +838,11 @@ export function App() {
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      if (editor && event.key === "Escape") {
-        void fetchNui("cancelTheme");
-        setEditor(null);
+      if (editor) {
+        if (event.key === "Escape") {
+          void fetchNui("cancelTheme");
+          setEditor(null);
+        }
         return;
       }
       if (event.key === "Escape" || event.key === "Backspace") {

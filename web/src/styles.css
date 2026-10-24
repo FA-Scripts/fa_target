@@ -1,4 +1,11 @@
 @font-face {
+  font-family: Inter;
+  src: url("/fonts/Inter-Latin-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
   font-family: Montserrat;
   src: url("/fonts/Montserrat-Variable.woff2") format("woff2");
   font-style: normal;
@@ -64,7 +71,7 @@ input {
 }
 .reticle.ready {
   border-color: var(--accent);
-  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.48);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.18);
 }
 .reticle.ready i {
   background: var(--accent);
@@ -85,13 +92,13 @@ input {
   position: absolute;
   z-index: 3;
   left: 22px;
-  top: -18px;
-  width: 310px;
-  padding: 7px;
+  top: -25px;
+  width: 280px;
+  padding: 4px;
   background: rgba(var(--surface-rgb), var(--surface-alpha));
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: var(--radius);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
 }
 .motion .target-menu {
   animation: reveal 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -134,14 +141,13 @@ input {
   --option-accent: var(--accent);
   position: relative;
   width: 100%;
-  min-height: 52px;
+  min-height: 40px;
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.055);
-  display: grid;
-  grid-template-columns: 30px 24px minmax(0, 1fr) auto;
+  display: flex;
   gap: 8px;
   align-items: center;
-  padding: 8px;
+  padding: 6px 8px;
   background: transparent;
   color: var(--text);
   text-align: left;
@@ -156,13 +162,19 @@ input {
   outline: 0;
   background: rgba(var(--option-accent-rgb), 0.12);
 }
+.option.has-description {
+  min-height: 48px;
+}
 .option > i {
+  flex: 0 0 20px;
+  font-size: 13px;
   color: var(--option-accent);
   text-align: center;
 }
 .keycap {
-  width: 28px;
-  height: 25px;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-bottom-color: rgba(255, 255, 255, 0.28);
   border-radius: 6px;
@@ -176,6 +188,7 @@ input {
   color: var(--muted);
 }
 .copy {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -195,6 +208,11 @@ input {
   text-overflow: ellipsis;
 }
 .badge {
+  flex: 0 0 auto;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 8px;
   letter-spacing: 0.08em;
   padding: 4px 6px;
@@ -244,18 +262,57 @@ input {
 }
 .preset-minimal .target-menu {
   box-shadow: none;
-  border-color: rgba(255, 255, 255, 0.045);
+  border-color: transparent;
+  padding: 2px;
+}
+.preset-minimal .option {
+  border-top-color: transparent;
+}
+.preset-minimal .keycap {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.09);
 }
 .preset-glass .target-menu {
-  border-color: rgba(255, 255, 255, 0.17);
+  padding: 6px;
+  border-color: rgba(255, 255, 255, 0.18);
   box-shadow:
-    0 18px 54px rgba(0, 0, 0, 0.44),
-    inset 0 1px rgba(255, 255, 255, 0.04);
+    0 8px 28px rgba(0, 0, 0, 0.18),
+    inset 0 1px rgba(255, 255, 255, 0.06);
+}
+.preset-glass .option {
+  border-radius: max(0px, calc(var(--radius) - 6px));
+}
+.preset-glass .keycap {
+  background: rgba(255, 255, 255, 0.1);
+}
+.preset-compact .target-menu {
+  width: 248px;
+  padding: 2px;
 }
 .preset-compact .option {
-  min-height: 40px;
+  min-height: 34px;
+  padding: 4px 6px;
+  gap: 6px;
+}
+.preset-compact .option.has-description {
+  min-height: 42px;
+}
+.preset-compact .keycap {
+  flex-basis: 22px;
+  width: 22px;
+  height: 22px;
 }
 .preset-classic .target-menu {
+  border-radius: 2px;
+  padding: 3px;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.preset-classic .option {
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+.preset-classic .keycap,
+.preset-classic .badge {
   border-radius: 2px;
 }
 .mode-dui .target-shell {
@@ -268,7 +325,7 @@ input {
 }
 .mode-dui .target-menu {
   top: var(--menu-y);
-  width: 270px;
+  width: 260px;
 }
 .mode-dui .side-right .target-menu {
   left: 20px;
@@ -281,16 +338,8 @@ input {
 .mode-dui .menu-title {
   padding: 5px 7px 7px;
 }
-.mode-dui .option {
-  min-height: 40px;
-  padding: 6px;
-  grid-template-columns: 27px 20px minmax(0, 1fr) auto;
-}
-.mode-dui .copy strong {
-  font-size: 12px;
-}
-.mode-dui .copy small {
-  font-size: 9px;
+.mode-dui.preset-compact .target-menu {
+  width: 240px;
 }
 .editor-backdrop {
   position: fixed;
@@ -302,6 +351,11 @@ input {
   background: rgba(3, 4, 7, 0.42);
 }
 .editor {
+  --accent: #7c5cff;
+  --accent-rgb: 124, 92, 255;
+  --text: #f7f7fb;
+  font-family: Inter, "Segoe UI", sans-serif;
+  color: #f7f7fb;
   width: min(800px, 94vw);
   max-height: 94vh;
   overflow-y: auto;
@@ -343,35 +397,46 @@ input {
 }
 .preview-stage {
   position: relative;
-  margin: 22px 0;
-  height: 176px;
+  margin: 10px 0 20px;
+  height: 240px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   background: #0b0c10;
   overflow: hidden;
 }
-.preview-label {
-  position: absolute;
-  z-index: 5;
-  top: 14px;
-  left: 16px;
-  color: #737582;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
 .preview-stage .target-shell {
-  left: 41%;
-  top: 42%;
+  left: 22%;
+  top: 30%;
 }
-.preview-stage .target-menu {
-  width: 320px;
+.preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  gap: 12px;
+  font-size: 12px;
+  color: #a9aab2;
 }
-.preview-stage .option {
-  min-height: 48px;
+.preview-toolbar > div {
+  display: flex;
+  gap: 4px;
 }
-.preview-stage .menu-title {
-  display: none;
+.preview-toolbar button {
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #a9aab2;
+  cursor: pointer;
+  font-size: 12px;
+}
+.preview-toolbar button[aria-pressed="true"] {
+  background: #20202b;
+  border-color: #444052;
+  color: #f7f7fb;
+}
+.preview-toolbar button:hover {
+  color: #fff;
 }
 .preset-grid {
   display: grid;
@@ -609,6 +674,11 @@ input {
   cursor: not-allowed;
 }
 .editor footer {
+  position: sticky;
+  bottom: -24px;
+  z-index: 25;
+  padding: 12px 0;
+  background: #101116;
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -629,12 +699,12 @@ input {
   .editor {
     padding: 18px;
   }
-  .preview-stage {
-    height: 146px;
-    margin: 16px 0;
+  .editor footer {
+    bottom: -18px;
   }
-  .preview-stage .target-shell {
-    transform: scale(calc(var(--scale) * 0.84));
+  .preview-stage {
+    height: 240px;
+    margin: 10px 0 16px;
   }
   .fields {
     gap: 8px;
