@@ -26,6 +26,11 @@ local GetOffsetFromEntityInWorldCoords = GetOffsetFromEntityInWorldCoords
 local currentTarget = {}
 local currentMenu
 local menuChanged
+local actionStateChanged = false
+local targetingSession = false
+local inputSession = false
+local targetingGeneration = 0
+local switchingMode = false
 local menuHistory = {}
 local nearbyZones
 local currentRequestId
@@ -43,6 +48,40 @@ local toggleHotkey = GetConvarInt('fa_target:toggleHotkey',
 local mouseButton = GetConvarInt('fa_target:leftClick', GetConvarInt('ox_target:leftClick', 1)) == 1 and 24 or 25
 local debug = GetConvarInt('fa_target:debug', GetConvarInt('ox_target:debug', 0)) == 1
 local vec0 = vec3(0, 0, 0)
+local stateWarnings = setmetatable({}, { __mode = 'k' })
+
+local function unavailableState(option, status, reason, remainingMs)
+    local seconds = remainingMs and math.ceil(remainingMs / 1000)
+    option.interactionState = {
+        status = status, reason = reason or locale('state_' .. status),
+        remainingMs = seconds and seconds * 1000 or nil,
+    }
+    option._stateToken = status .. ':' .. option.interactionState.reason .. ':' .. (seconds or '')
+    return (option.unavailable or Config.Interaction.unavailable or 'hide') == 'hide'
+end
+
+local function warnState(option, callback)
+    local now = GetGameTimer()
+    if not stateWarnings[option] or now - stateWarnings[option] > 5000 then
+        stateWarnings[option] = now
+        utils.warn(('Invalid or failed %s for option %s; option hidden'):format(callback, option.name or option.label or 'unnamed'))
+    end
+end
+
+local function nuiOptions(groups)
+    local result = {}
+    for groupName, list in pairs(groups) do
+        result[groupName] = {}
+        for i = 1, #list do
+            local copy = {}
+            for key, value in pairs(list[i]) do
+                if type(value) ~= 'function' and key ~= '_stateToken' then copy[key] = value end
+            end
+            result[groupName][i] = copy
+        end
+    end
+    return result
+end
 
 local function getTargetAnchor(entity, coords, targetZones)
     if entity and entity > 0 and DoesEntityExist(entity) then
@@ -104,6 +143,7 @@ end
 ---@param entityType? number
 ---@param entityModel? number | false
 local function shouldHide(option, distance, endCoords, entityHit, entityType, entityModel)
+    option.interactionState, option._stateToken = nil, nil
     local inheritedMode = Config.Interaction.resourceModes[option.resource] or Config.Interaction.mode
     local optionMode = option.mode == 'inherit' and inheritedMode or option.mode or inheritedMode
     if optionMode == 'classic' and Config.Interaction.mode ~= 'classic' and not classicEngaged then return true end
@@ -117,14 +157,6 @@ local function shouldHide(option, distance, endCoords, entityHit, entityType, en
 
     if entityModel and Config.Interaction.hideExternalEntitiesInVehicle and cache.vehicle
         and entityHit ~= cache.vehicle then
-        return true
-    end
-
-    if option.groups and not utils.hasPlayerGotGroup(option.groups) then
-        return true
-    end
-
-    if option.items and not utils.hasPlayerGotItems(option.items, option.anyItem) then
         return true
     end
 
@@ -190,8 +222,33 @@ local function shouldHide(option, distance, endCoords, entityHit, entityType, en
 
     if option.canInteract then
         local success, resp = pcall(option.canInteract, entityHit, distance, endCoords, option.name, bone)
-        return not success or not resp
+        if not success then warnState(option, 'canInteract') return true end
+        if not resp then return true end
     end
+
+    if option.groups and not utils.hasPlayerGotGroup(option.groups) then return unavailableState(option, 'noPermission') end
+    if option.items and not utils.hasPlayerGotItems(option.items, option.anyItem) then return unavailableState(option, 'missingItem') end
+    if option.disabled then return unavailableState(option, 'disabled') end
+
+    if option.getState then
+        local success, result = pcall(option.getState, entityHit, distance, endCoords, option.name, bone)
+        local statuses = { available = true, disabled = true, cooldown = true, missingItem = true, noPermission = true }
+        if not success or type(result) ~= 'table' or not statuses[result.status] then
+            warnState(option, 'getState')
+            return true
+        end
+        if result.status ~= 'available' then
+            local remaining = tonumber(result.remainingMs)
+            if remaining and (remaining ~= remaining or remaining == math.huge or remaining == -math.huge) then remaining = nil end
+            remaining = remaining and math.max(0, math.min(86400000, remaining)) or nil
+            local reason = type(result.reason) == 'string' and result.reason:match('%S') and result.reason:sub(1, 160) or nil
+            if result.status == 'cooldown' and remaining and not reason then reason = locale('state_cooldown_seconds', math.ceil(remaining / 1000)) end
+            return unavailableState(option, result.status, reason, remaining)
+        end
+    end
+    option.interactionState = { status = 'available' }
+    option._stateToken = 'available'
+    return false
 end
 
 local optionGroups = { '__global', 'entity', 'globalTarget', 'localEntity', 'model' }
@@ -240,6 +297,8 @@ local function handleTargetInput(inputId, target, pressed)
     local holdDuration = tonumber(target.option.hold) or 0
 
     if pressed then
+        if theme.isEditorOpen() then return end
+        if target.option.hide or target.option.interactionState and target.option.interactionState.status ~= 'available' then return end
         if inputHolds[inputId] then return end
         if holdDuration <= 0 then
             selectOption({ target.targetType, target.targetId, target.zoneId })
@@ -330,21 +389,27 @@ end
 
 local function startTargeting()
     local playerState = LocalPlayer.state
-    if state.isDisabled() or state.isActive() or IsNuiFocused() or IsPauseMenuActive() then return end
+    if switchingMode or targetingSession or inputSession or state.isDisabled() or state.isActive() or IsNuiFocused() or IsPauseMenuActive() then return end
     if Config.Interaction.suspendWhenDead and (IsEntityDead(cache.ped) or playerState.isDead or playerState.dead) then return end
     if Config.Interaction.suspendWhenCuffed and (playerState.isCuffed or playerState.ishandcuffed) then return end
 
     state.setActive(true)
+    targetingSession = true
+    targetingGeneration = targetingGeneration + 1
+    local generation = targetingGeneration
 
     local flag = 511
     local hit, entityHit, endCoords, distance, lastEntity, entityType, entityModel, hasTarget, zonesChanged
     local zones = {}
 
+    inputSession = true
     CreateThread(function()
         local dict, texture = utils.getTexture()
         local lastCoords
 
-        while state.isActive() do
+        while state.isActive() and generation == targetingGeneration do
+            while theme.isEditorOpen() and state.isActive() and generation == targetingGeneration do clearInputHolds() Wait(100) end
+            if not state.isActive() or generation ~= targetingGeneration then break end
             lastCoords = endCoords == vec0 and lastCoords or endCoords or vec0
 
             if debug then
@@ -396,9 +461,12 @@ local function startTargeting()
         end
 
         SetStreamedTextureDictAsNoLongerNeeded(dict)
+        inputSession = false
     end)
 
-    while state.isActive() do
+    while state.isActive() and generation == targetingGeneration do
+        while theme.isEditorOpen() and state.isActive() and generation == targetingGeneration do clearInputHolds() Wait(100) end
+        if not state.isActive() or generation ~= targetingGeneration then break end
         if not state.isNuiFocused() and lib.progressActive() then
             state.setActive(false)
             break
@@ -431,7 +499,9 @@ local function startTargeting()
         nearbyZones, zonesChanged = utils.getNearbyZones(endCoords)
 
         local entityChanged = entityHit ~= lastEntity
-        local newOptions = (zonesChanged or entityChanged or menuChanged) and true
+        local newOptions = (zonesChanged or entityChanged or menuChanged or actionStateChanged) and true
+        actionStateChanged = false
+        local holdInvalidated = newOptions
 
         if entityChanged then
             currentMenu = nil
@@ -468,6 +538,7 @@ local function startTargeting()
         currentTarget.entity = entityHit
         currentTarget.coords = endCoords
         currentTarget.distance = distance
+        currentTarget.entityType, currentTarget.entityModel = entityType, entityModel
         local hidden = 0
         local totalOptions = 0
 
@@ -478,9 +549,12 @@ local function startTargeting()
 
             for i = 1, optionCount do
                 local option = v[i]
+                local previousState = option._stateToken
+                local previousStatus = option.interactionState and option.interactionState.status
                 local hide = shouldHide(option, dist, endCoords, entityHit, entityType, entityModel)
 
-                if option.hide ~= hide then
+                if option.hide ~= hide or previousState ~= option._stateToken then
+                    if option.hide ~= hide or previousStatus ~= (option.interactionState and option.interactionState.status) then holdInvalidated = true end
                     option.hide = hide
                     newOptions = true
                 end
@@ -499,9 +573,12 @@ local function startTargeting()
 
             for j = 1, optionCount do
                 local option = zoneOptions[j]
+                local previousState = option._stateToken
+                local previousStatus = option.interactionState and option.interactionState.status
                 local hide = shouldHide(option, distance, endCoords, entityHit)
 
-                if option.hide ~= hide then
+                if option.hide ~= hide or previousState ~= option._stateToken then
+                    if option.hide ~= hide or previousStatus ~= (option.interactionState and option.interactionState.status) then holdInvalidated = true end
                     option.hide = hide
                     newOptions = true
                 end
@@ -510,7 +587,7 @@ local function startTargeting()
             end
         end
 
-        if newOptions then clearInputHolds() end
+        if holdInvalidated then clearInputHolds() end
         rebuildVisibleTargets(zones)
 
         local hasEntityInteraction = false
@@ -523,6 +600,9 @@ local function startTargeting()
         end
 
         local currentTheme = theme.get()
+        if currentTheme.fade then
+            SendNUIMessage({ event = 'targetDistance', distance = distance, revealDistance = Config.Interaction.revealDistance, expandDistance = Config.Interaction.expandDistance })
+        end
         if debug or Config.Visual.outline or (Config.Visual.highlight and currentTheme.highlight) then
             -- SET_ENTITY_DRAW_OUTLINE is unsafe for skinned ped meshes and can hard-crash FiveM.
             -- Peds remain fully targetable; only their experimental native outline is suppressed.
@@ -567,8 +647,8 @@ local function startTargeting()
 
                 SendNuiMessage(json.encode({
                     event = 'setTarget',
-                    options = options,
-                    zones = zones,
+                    options = nuiOptions(options),
+                    zones = nuiOptions(zones),
                     mode = Config.Interaction.mode,
                     theme = currentTheme,
                     fonts = theme.getFonts(),
@@ -610,13 +690,30 @@ local function startTargeting()
     table.wipe(visibleTargets)
     lastAnchorX, lastAnchorY, lastAnchorVisible = nil, nil, nil
 
-    state.setNuiFocus(false)
+    if not theme.isEditorOpen() then state.setNuiFocus(false) end
     SendNuiMessage('{"event": "visible", "state": false}')
     table.wipe(currentTarget)
     options:wipe()
 
     if nearbyZones then table.wipe(nearbyZones) end
+    targetingSession = false
 end
+
+theme.setModeSwitcher(function(mode)
+    if switchingMode then return false end
+    switchingMode = true
+    targetingGeneration = targetingGeneration + 1
+    state.setActive(false)
+    clearInputHolds()
+    local expires = GetGameTimer() + 5000
+    while (targetingSession or inputSession) and GetGameTimer() < expires do Wait(0) end
+    if targetingSession or inputSession then switchingMode = false return false end
+    classicEngaged = false
+    Config.Interaction.mode = mode
+    SendNUIMessage({ event = 'interactionMode', mode = mode })
+    switchingMode = false
+    return true
+end)
 
 do
     ---@type KeybindProps
@@ -627,28 +724,18 @@ do
         description = locale('toggle_targeting'),
     }
 
-    if Config.Interaction.mode == 'focus' or Config.Interaction.mode == 'dui' then
-        function keybind:onPressed()
+    function keybind:onPressed()
+        if Config.Interaction.mode == 'focus' or Config.Interaction.mode == 'dui' then
             classicEngaged = true
+            return
         end
+        if toggleHotkey and state.isActive() then return state.setActive(false) end
+        return startTargeting()
+    end
 
-        function keybind:onReleased()
-            classicEngaged = false
-        end
-    elseif toggleHotkey then
-        function keybind:onPressed()
-            if state.isActive() then
-                return state.setActive(false)
-            end
-
-            return startTargeting()
-        end
-    else
-        keybind.onPressed = startTargeting
-
-        function keybind:onReleased()
-            state.setActive(false)
-        end
+    function keybind:onReleased()
+        classicEngaged = false
+        if Config.Interaction.mode == 'classic' and not toggleHotkey then state.setActive(false) end
     end
 
     lib.addKeybind(keybind)
@@ -675,6 +762,9 @@ local function getResponse(option, server)
     response.groups = nil
     response.items = nil
     response.canInteract = nil
+    response.getState = nil
+    response._stateToken = nil
+    response.interactionState = nil
     response.onSelect = nil
     response.export = nil
     response.event = nil
@@ -685,6 +775,13 @@ local function getResponse(option, server)
 end
 
 selectOption = function(data)
+    if theme.isEditorOpen() then return end
+    if type(data) ~= 'table' or not state.isActive() or not currentTarget.coords then return end
+    if type(data[1]) ~= 'string' or type(data[2]) ~= 'number' or data[2] % 1 ~= 0
+        or data[3] ~= nil and (type(data[3]) ~= 'number' or data[3] % 1 ~= 0) then return end
+    if IsNuiFocused() and not state.isNuiFocused() then return end -- Theme Creator or another NUI owns focus.
+    if IsPauseMenuActive() or Config.Interaction.suspendWhenDead and IsEntityDead(cache.ped) then return end
+    if Config.Interaction.suspendWhenCuffed and (LocalPlayer.state.isCuffed or LocalPlayer.state.ishandcuffed) then return end
     local zone = data[3] and nearbyZones[data[3]]
 
     ---@type OxTargetOption?
@@ -692,6 +789,23 @@ selectOption = function(data)
     local option = zone and zone.options[data[2]] or group and group[data[2]]
 
     if option then
+        local isVisible = false
+        for i = 1, #visibleTargets do
+            if visibleTargets[i].option == option and visibleTargets[i].targetType == data[1]
+                and visibleTargets[i].targetId == data[2] and visibleTargets[i].zoneId == data[3] then isVisible = true break end
+        end
+        if not isVisible or option.hide then return end
+        local entity = currentTarget.entity
+        if data[1] ~= 'zones' and entity and entity > 0 and not DoesEntityExist(entity) then return end
+        local hidden = shouldHide(option, data[1] == '__global' and 0 or currentTarget.distance,
+            currentTarget.coords, entity, data[1] ~= 'zones' and currentTarget.entityType or nil,
+            data[1] ~= 'zones' and currentTarget.entityModel or nil)
+        if hidden or option.interactionState and option.interactionState.status ~= 'available' then
+            actionStateChanged = true
+            clearInputHolds()
+            SendNUIMessage({ event = 'actionResult', status = 'error', message = option.interactionState and option.interactionState.reason or locale('state_disabled') })
+            return
+        end
         if option.openMenu then
             local menuDepth = #menuHistory
 

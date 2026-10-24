@@ -12,5 +12,10 @@
   "debug_vehicle": "(Debug) Pojazd",
   "debug_object": "(Debug) Obiekt",
   "toggle_targeting": "Przełącz celowanie",
-  "go_back": "Wróć"
+  "go_back": "Wróć",
+  "state_disabled": "Niedostępne",
+  "state_missingItem": "Brakuje wymaganego przedmiotu",
+  "state_noPermission": "Brak uprawnień",
+  "state_cooldown": "Trwa odnowienie",
+  "state_cooldown_seconds": "Dostępne za %s s"
 }

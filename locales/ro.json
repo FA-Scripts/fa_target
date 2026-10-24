@@ -13,5 +13,10 @@
   "debug_object": "(Debug) Obiect",
   "debug_global": "(Debug) Global",
   "toggle_targeting": "Foloseste ochiul",
-  "go_back": "Întoarce-te"
+  "go_back": "Întoarce-te",
+  "state_disabled": "Indisponibil",
+  "state_missingItem": "Lipsește obiectul necesar",
+  "state_noPermission": "Acces restricționat",
+  "state_cooldown": "În așteptare",
+  "state_cooldown_seconds": "Disponibil în %s secunde"
 }

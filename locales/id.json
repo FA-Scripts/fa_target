@@ -11,5 +11,10 @@
   "debug_ped": "(Debug) Ped",
   "debug_vehicle": "(Debug) Kendaraan",
   "debug_object": "(Debug) Objek",
-  "toggle_targeting": "Tombol penargetan"
+  "toggle_targeting": "Tombol penargetan",
+  "state_disabled": "Tidak tersedia",
+  "state_missingItem": "Item yang diperlukan tidak ada",
+  "state_noPermission": "Akses dibatasi",
+  "state_cooldown": "Waktu tunggu",
+  "state_cooldown_seconds": "Tersedia dalam %s detik"
 }

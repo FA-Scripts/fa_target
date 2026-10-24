@@ -11,5 +11,10 @@
   "debug_ped": "(Debug) Ped",
   "debug_vehicle": "(Debug) Fahrzeug",
   "debug_object": "(Debug) Objekt",
-  "toggle_targeting": "Zielen umschalten"
+  "toggle_targeting": "Zielen umschalten",
+  "state_disabled": "Nicht verfügbar",
+  "state_missingItem": "Erforderlicher Gegenstand fehlt",
+  "state_noPermission": "Kein Zugriff",
+  "state_cooldown": "Abklingzeit",
+  "state_cooldown_seconds": "Verfügbar in %s Sekunden"
 }

@@ -12,5 +12,10 @@
   "debug_vehicle": "(Debug) Sõiduk",
   "debug_object": "(Debug) Objekt",
   "toggle_targeting": "Näita kolmandat silma",
-  "go_back": "Mine tagasi"
+  "go_back": "Mine tagasi",
+  "state_disabled": "Pole saadaval",
+  "state_missingItem": "Vajalik ese puudub",
+  "state_noPermission": "Juurdepääs piiratud",
+  "state_cooldown": "Ooteaeg",
+  "state_cooldown_seconds": "Saadaval %s sekundi pärast"
 }

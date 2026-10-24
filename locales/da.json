@@ -13,5 +13,10 @@
   "debug_object": "(Debug) Objekt",
   "debug_global": "(Debug) Global",
   "toggle_targeting": "Skift målretning",
-  "go_back": "Gå tilbage"
+  "go_back": "Gå tilbage",
+  "state_disabled": "Utilgængelig",
+  "state_missingItem": "Påkrævet genstand mangler",
+  "state_noPermission": "Adgang begrænset",
+  "state_cooldown": "Ventetid",
+  "state_cooldown_seconds": "Tilgængelig om %s sekunder"
 }

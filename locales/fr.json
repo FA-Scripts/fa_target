@@ -12,5 +12,10 @@
   "debug_vehicle": "(Debug) Véhicule",
   "debug_object": "(Debug) Objet",
   "toggle_targeting": "Afficher le système d'interaction",
-  "go_back": "Retour"
+  "go_back": "Retour",
+  "state_disabled": "Indisponible",
+  "state_missingItem": "Objet requis manquant",
+  "state_noPermission": "Accès restreint",
+  "state_cooldown": "En attente",
+  "state_cooldown_seconds": "Disponible dans %s secondes"
 }

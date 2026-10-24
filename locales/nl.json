@@ -11,5 +11,10 @@
   "debug_ped": "(Debug) Ped",
   "debug_vehicle": "(Debug) Voertuig",
   "debug_object": "(Debug) Object",
-  "toggle_targeting": "Toggle richten"
+  "toggle_targeting": "Toggle richten",
+  "state_disabled": "Niet beschikbaar",
+  "state_missingItem": "Vereist item ontbreekt",
+  "state_noPermission": "Geen toegang",
+  "state_cooldown": "Wachttijd",
+  "state_cooldown_seconds": "Beschikbaar over %s seconden"
 }

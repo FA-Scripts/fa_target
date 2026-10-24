@@ -11,5 +11,10 @@
   "debug_ped": "(Debug) Peatón",
   "debug_vehicle": "(Debug) Vehículo",
   "debug_object": "(Debug) Objeto",
-  "toggle_targeting": "Activar/Desactivar apuntado"
+  "toggle_targeting": "Activar/Desactivar apuntado",
+  "state_disabled": "No disponible",
+  "state_missingItem": "Falta un objeto requerido",
+  "state_noPermission": "Acceso restringido",
+  "state_cooldown": "En espera",
+  "state_cooldown_seconds": "Disponible en %s segundos"
 }

@@ -6,5 +6,10 @@
   "toggle_hood": "Åpne/lukke panser",
   "toggle_trunk": "Åpne/lukke bagasjerom",
   "toggle_targeting": "Sikt",
-  "go_back": "Tilbake"
+  "go_back": "Tilbake",
+  "state_disabled": "Utilgjengelig",
+  "state_missingItem": "Påkrevd gjenstand mangler",
+  "state_noPermission": "Ingen tilgang",
+  "state_cooldown": "Ventetid",
+  "state_cooldown_seconds": "Tilgjengelig om %s sekunder"
 }

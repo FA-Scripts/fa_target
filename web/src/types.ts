@@ -12,6 +12,24 @@ export type Theme = {
   animations: boolean;
   indicator: boolean;
   highlight: boolean;
+  blur: number;
+  width: number;
+  textSize: number;
+  indicatorSize: number;
+  indicatorStyle: "ring" | "dot" | "crosshair";
+  cursorHint: "always" | "first" | "never";
+  highContrast: boolean;
+  colorVision: "normal" | "protanopia" | "deuteranopia" | "tritanopia";
+  fade: boolean;
+  sound: boolean;
+  soundVolume: number;
+  categoryColors: Record<string, string>;
+};
+export type InteractionState = {
+  status:
+    "available" | "disabled" | "cooldown" | "missingItem" | "noPermission";
+  reason?: string;
+  remainingMs?: number;
 };
 export type FontDefinition = {
   id: string;
@@ -31,6 +49,8 @@ export type TargetOption = {
   key?: string;
   hold?: number;
   hide?: boolean;
+  category?: string;
+  interactionState?: InteractionState;
 };
 export type OptionRef = TargetOption & {
   targetType: string;
@@ -59,4 +79,10 @@ export type NuiMessage = {
   hasTarget?: boolean;
   fonts?: FontDefinition[];
   resetTheme?: Theme;
+  distance?: number;
+  revealDistance?: number;
+  expandDistance?: number;
+  cursor?: boolean;
+  interactionMode?: string;
+  allowModeSwitch?: boolean;
 };

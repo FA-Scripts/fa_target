@@ -12,5 +12,10 @@
   "debug_vehicle": "(Debug) Vehicle",
   "debug_object": "(Debug) Object",
   "toggle_targeting": "Apri/Chiudi targeting",
-  "go_back": "Indietro"
+  "go_back": "Indietro",
+  "state_disabled": "Non disponibile",
+  "state_missingItem": "Oggetto richiesto mancante",
+  "state_noPermission": "Accesso limitato",
+  "state_cooldown": "In attesa",
+  "state_cooldown_seconds": "Disponibile tra %s secondi"
 }
