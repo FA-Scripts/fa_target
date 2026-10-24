@@ -11,5 +11,10 @@
   "debug_ped": "(Debug) Pešec",
   "debug_vehicle": "(Debug) Vozilo",
   "debug_object": "(Debug) Predmet",
-  "toggle_targeting": "Vklopi/Izklopi tretje oko"
-  }
+  "toggle_targeting": "Vklopi/Izklopi tretje oko",
+  "state_disabled": "Ni na voljo",
+  "state_missingItem": "Manjka zahtevani predmet",
+  "state_noPermission": "Omejen dostop",
+  "state_cooldown": "Čakanje",
+  "state_cooldown_seconds": "Na voljo čez %s sekund"
+}

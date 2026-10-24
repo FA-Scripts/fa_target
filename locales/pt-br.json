@@ -12,5 +12,10 @@
   "debug_vehicle": "(Debug) Veículo",
   "debug_object": "(Debug) Objeto",
   "toggle_targeting": "Alternar mira",
-  "go_back": "Voltar"
+  "go_back": "Voltar",
+  "state_disabled": "Indisponível",
+  "state_missingItem": "Falta um item necessário",
+  "state_noPermission": "Acesso restrito",
+  "state_cooldown": "Em espera",
+  "state_cooldown_seconds": "Disponível em %s segundos"
 }

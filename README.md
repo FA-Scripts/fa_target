@@ -5,7 +5,7 @@
 <h1 align="center">FA Target</h1>
 
 <p align="center">
-  Modern interaction system for FiveM with Focus, Classic and DUI modes.
+  Modern interaction system for FiveM with Focus, Cursor and World modes.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@ Maintain compatibility with existing resources while adding modern interaction m
 Designed as a drop-in replacement for ``ox_target``, with compatibility adapters for ``qb-target`` and ``qtarget``.  
 
 ## Features
-- **3 interaction modes** - Focus, Classic and world-anchored DUI
+- **3 interaction modes** - Focus, Cursor and World (configuration IDs: `focus`, `classic`, `dui`)
 - **Theme Creator** - customize the interaction UI directly in-game
 - **Option keybinds** - trigger interactions using configurable keys
 - **Hold interactions** - require an option to be held for a configured duration
@@ -121,7 +121,7 @@ DUI mode uses the regular NUI renderer anchored to the raycast world coordinate,
 
 ### Local fonts
 
-Montserrat Variable is bundled locally and is the default for runtime interactions and the Theme Creator. To add a custom font, copy its `.woff2` file to `web/public/fonts`, add one entry to `Config.Theme.fonts`, and rebuild the UI:
+Montserrat Variable is bundled locally for runtime interactions. The Theme Creator uses its own local Inter font, independent of the selected target font. To add a custom target font, copy its `.woff2` file to `web/public/fonts`, add one entry to `Config.Theme.fonts`, and rebuild the UI:
 
 ```lua
 {
@@ -166,6 +166,63 @@ exports.fa_target:addLocalEntity(ped, {{
 | `key` | `string` | Key used to trigger the option |
 | `hold` | `number` | Required hold duration in milliseconds |
 | `mode` | `string` | Overrides the interaction mode for the option |
+| `category` | `string` | Identifier matching a color in `Theme.categoryColors` |
+| `unavailable` | `'show'` / `'hide'` | Overrides how unavailable actions are displayed |
+| `disabled` | `boolean` | Explicitly marks an action unavailable |
+| `getState` | `function` | Returns `status`, optional `reason` and `remainingMs` |
+
+### Unavailable actions
+
+Unavailable actions are hidden by default. Set `Config.Interaction.unavailable = 'show'` to display them with a reason, or use `unavailable = 'show'` on an individual option. Distance, object/bone/menu matching and vehicle filters still hide irrelevant options. A falsy `canInteract` result always hides the option, even when unavailable actions are shown, and is checked before group, item and disabled states. Failed `canInteract`/`getState` callbacks also hide their option and produce a throttled diagnostic.
+
+`getState(entity, distance, coords, name, bone)` must be a fast, synchronous client callback. Return one of `available`, `disabled`, `cooldown`, `missingItem`, `noPermission`. Cooldowns belong to the integrating resource; FA Target only displays their state. Group/item checks are evaluated before this callback and cannot be bypassed by returning `available`.
+
+```lua
+local availableAt = 0
+exports.fa_target:addLocalEntity(ped, {{
+    name = 'inspect', label = 'Inspect vehicle', category = 'vehicle', hold = 1200,
+    getState = function()
+        local remaining = availableAt - GetGameTimer()
+        return remaining > 0 and { status = 'cooldown', remainingMs = remaining }
+            or { status = 'available' }
+    end,
+    onSelect = function(data)
+        availableAt = GetGameTimer() + 5000
+        -- The server receiving this request must independently validate the action.
+        TriggerServerEvent('my_resource:inspect', data.entity)
+    end,
+}})
+```
+
+### Theme settings and migration
+
+`Config.Interaction.allowPlayerModeSwitch` defaults to `false`: the server owner chooses the gameplay mode and the editor's Focus/Cursor/World buttons are preview controls only. Enable it to expose **Your gameplay mode** in Behavior. It is saved per player in local KVP when Save theme succeeds; Cancel does not change the mode. The choice also works when player theme customization is disabled. Disabling the switch and restarting restores the configured mode and ignores saved player mode preferences. Explicit per-resource/per-option mode overrides remain in effect. Switching stops targeting, cancels holds, releases owned focus and clears old registrations from the current view before the new mode starts; resources do not need restarting.
+
+The editor offers Precision, Minimal, Glass and Legacy. Existing `compact` saves normalize to `minimal` while keeping individual colors, radius and scale. Legacy retains the `classic` preset ID; mode IDs and compatibility exports are unchanged.
+
+The Colors, Shape, Layout, Behavior and Accessibility sections share one live renderer with the game. Preview 1/3/6 options, long labels, unavailable states and a light or dark background. Add your game screenshot as `web/public/preview/game.jpg`, `game.png` or `game.webp` and rebuild to enable the screenshot background. It is a bundled preview asset, not a player screenshot upload.
+
+Additional fields in `Config.Theme.default` and `allowedPlayerFields`:
+
+| Field | Range / values | Default |
+| --- | --- | --- |
+| `blur` | 0–20 px, Glass surface only | 12 |
+| `width` | 220–420 px; World and Minimal retain proportional widths | 280 |
+| `textSize` | 12–20 px | 13 |
+| `indicatorSize` | 10–24 px | 13 |
+| `indicatorStyle` | `ring`, `dot`, `crosshair` | `ring` |
+| `cursorHint` | `always`, `first`, `never` | `first` |
+| `highContrast` | boolean | false |
+| `colorVision` | `normal`, `protanopia`, `deuteranopia`, `tritanopia` | `normal` |
+| `fade` | boolean; fades to 35% between expand/reveal distance | false |
+| `sound` / `soundVolume` | boolean / 0–1 | false / 0.25 |
+| `categoryColors` | up to 16 category identifiers mapped to HEX colors | `{}` |
+
+Explicit `option.accent` overrides a category color; otherwise the main accent is used. Accessibility display overrides do not rewrite the saved palette. Default runtime reason messages are localized. Custom `reason` strings come from the integrating resource.
+
+Reset asks for confirmation and only changes editable fields. Export/import uses versioned JSON (`{ version = 1, theme = ... }` represented as JSON), capped at 64 KB. Imports are previews until Save. File download/upload and a copy/paste JSON panel are available; the latter also works when the embedded browser does not support file dialogs. No player identifiers are exported. The onboarding and first-use cursor hint are remembered locally per browser profile.
+
+Glass uses CSS backdrop blur with a tinted surface as its contrast fallback. Browser rendering does not prove how FiveM composites it over the game; verify Glass on your running server. It does not invoke global screen-blur natives.
 
 ### Async actions
 
@@ -194,6 +251,8 @@ npm install
 npm run build
 ```
 The production build is generated in ``web/dist``.
+
+Run `npm run typecheck` and `npm test` from `web` for theme validation, Lua migration/permission/selection tests, and Lua syntax checks. Tests use a Lua WASM runtime and stub engine calls; they do not replace FiveM testing.
 
 > [!NOTE]
 > Release archives already include the compiled ``web/dist`` files.

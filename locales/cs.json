@@ -12,5 +12,10 @@
   "debug_vehicle": "(Debug) Vozidlo",
   "debug_object": "(Debug) Objekt",
   "toggle_targeting": "Výběr zaměření",
-  "go_back": "Zpět"
+  "go_back": "Zpět",
+  "state_disabled": "Nedostupné",
+  "state_missingItem": "Chybí požadovaný předmět",
+  "state_noPermission": "Přístup omezen",
+  "state_cooldown": "Čekání",
+  "state_cooldown_seconds": "Dostupné za %s sekund"
 }

@@ -13,5 +13,10 @@
   "debug_object": "(Debug) Object",
   "debug_global": "(Debug) Global",
   "toggle_targeting": "Toggle targeting",
-  "go_back": "Go back"
+  "go_back": "Go back",
+  "state_disabled": "Unavailable",
+  "state_missingItem": "Required item missing",
+  "state_noPermission": "Access restricted",
+  "state_cooldown": "On cooldown",
+  "state_cooldown_seconds": "Available in %s seconds"
 }

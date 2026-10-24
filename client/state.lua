@@ -30,6 +30,7 @@ function state.setNuiFocus(value, cursor)
     nuiFocus = value
     SetNuiFocus(value, cursor or false)
     SetNuiFocusKeepInput(value)
+    if value and cursor then SendNUIMessage({ event = 'cursor', cursor = true }) end
 end
 
 local isDisabled = false

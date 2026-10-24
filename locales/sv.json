@@ -13,5 +13,10 @@
   "debug_object": "(Debug) Objekt",
   "debug_global": "(Debug) Global",
   "toggle_targeting": "Växla Target",
-  "go_back": "Gå tillbaka"
+  "go_back": "Gå tillbaka",
+  "state_disabled": "Otillgänglig",
+  "state_missingItem": "Nödvändigt föremål saknas",
+  "state_noPermission": "Åtkomst begränsad",
+  "state_cooldown": "Väntetid",
+  "state_cooldown_seconds": "Tillgänglig om %s sekunder"
 }

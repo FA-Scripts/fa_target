@@ -13,5 +13,10 @@
   "debug_object": "(Debug) 物體",
   "debug_global": "(Debug) 全局對象",
   "toggle_targeting": "交互菜單",
-  "go_back": "返回"
+  "go_back": "返回",
+  "state_disabled": "無法使用",
+  "state_missingItem": "缺少所需物品",
+  "state_noPermission": "無存取權限",
+  "state_cooldown": "冷卻中",
+  "state_cooldown_seconds": "%s 秒後可用"
 }

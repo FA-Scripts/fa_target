@@ -13,5 +13,10 @@
   "debug_object": "(Debug) Nesne",
   "debug_global": "(Debug) Genel",
   "toggle_targeting": "Hedeflemeyi aç/kapa",
-  "go_back": "Geri dön"
+  "go_back": "Geri dön",
+  "state_disabled": "Kullanılamıyor",
+  "state_missingItem": "Gerekli eşya eksik",
+  "state_noPermission": "Erişim kısıtlı",
+  "state_cooldown": "Bekleme süresi",
+  "state_cooldown_seconds": "%s saniye sonra kullanılabilir"
 }

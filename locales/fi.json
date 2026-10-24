@@ -11,5 +11,10 @@
   "debug_ped": "(Debug) Ped",
   "debug_vehicle": "(Debug) Ajoneuvo",
   "debug_object": "(Debug) Objekti",
-  "toggle_targeting": "Päällä/Pois tähtäys"
+  "toggle_targeting": "Päällä/Pois tähtäys",
+  "state_disabled": "Ei saatavilla",
+  "state_missingItem": "Vaadittu esine puuttuu",
+  "state_noPermission": "Pääsy rajoitettu",
+  "state_cooldown": "Odotusaika",
+  "state_cooldown_seconds": "Saatavilla %s sekunnin kuluttua"
 }

@@ -11,5 +11,10 @@
   "debug_ped": "(Debug) Ped",
   "debug_vehicle": "(Debug) Auto",
   "debug_object": "(Debug) Objekt",
-  "toggle_targeting": "Upali/Ugasi Target sistem"
+  "toggle_targeting": "Upali/Ugasi Target sistem",
+  "state_disabled": "Nedostupno",
+  "state_missingItem": "Nedostaje potreban predmet",
+  "state_noPermission": "Pristup ograničen",
+  "state_cooldown": "Vrijeme čekanja",
+  "state_cooldown_seconds": "Dostupno za %s sekundi"
 }

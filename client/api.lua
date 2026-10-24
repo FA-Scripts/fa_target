@@ -1,5 +1,9 @@
 ---@class OxTargetOption
 ---@field resource? string
+---@field unavailable? 'show' | 'hide'
+---@field category? string
+---@field disabled? boolean
+---@field getState? fun(entity: number, distance: number, coords: vector3, name: string, bone: number): table
 
 local utils = require 'client.utils'
 
@@ -59,6 +63,14 @@ local function checkOptions(options)
 
     for i = 1, #options do
         local option = options[i]
+        if option.getState ~= nil and type(option.getState) ~= 'function' then typeError('option.getState', 'function', type(option.getState)) end
+        if option.unavailable ~= nil and option.unavailable ~= 'show' and option.unavailable ~= 'hide' then
+            typeError('option.unavailable', "'show' or 'hide'", tostring(option.unavailable))
+        end
+        if option.category ~= nil and (type(option.category) ~= 'string' or #option.category > 32 or not option.category:match('^[%w_-]+$')) then
+            typeError('option.category', 'category identifier (1-32 letters, digits, underscores or hyphens)', type(option.category))
+        end
+        if option.disabled ~= nil and type(option.disabled) ~= 'boolean' then typeError('option.disabled', 'boolean', type(option.disabled)) end
         if option.hold ~= nil then
             option.hold = math.max(0, math.min(30000, tonumber(option.hold) or 0))
         end
