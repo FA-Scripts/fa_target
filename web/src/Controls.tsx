@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, useId, useRef } from "react";
 import { createPortal } from "react-dom";
-import { hexToHsv, hsvToHex } from "./color";
+import { contrastRatio, isHexColor, hexToHsv, hsvToHex } from "./color";
 
 export function NumberField({
   label,
@@ -85,19 +85,30 @@ export function NumberField({
 }
 export function Toggle({
   label,
+  description,
   checked,
   disabled,
   onChange,
 }: {
   label: string;
+  description?: string;
   checked: boolean;
   disabled: boolean;
   onChange: (value: boolean) => void;
 }) {
+  const descriptionId = useId();
   return (
     <label className={`setting toggle-setting ${disabled ? "disabled" : ""}`}>
-      <span>{label}</span>
+      <span>
+        {label}
+        {description && (
+          <small id={descriptionId} className="toggle-description">
+            {description}
+          </small>
+        )}
+      </span>
       <input
+        aria-describedby={description ? descriptionId : undefined}
         type="checkbox"
         role="switch"
         aria-label={label}
@@ -309,18 +320,29 @@ export function Choice({
 }
 export function ColorField({
   label,
+  contrastSurface,
   value,
   disabled,
   onChange,
 }: {
   label: string;
+  contrastSurface?: string;
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
 }) {
+  const [error, setError] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
+  const inputId = useId();
+  const ratio = contrastSurface
+    ? contrastRatio(value, contrastSurface)
+    : undefined;
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
+  useEffect(() => {
+    setText(value);
+    setError("");
+  }, [value]);
   const [hsv, setHsv] = useState(() => hexToHsv(value));
   const lastEmitted = useRef(value);
   useEffect(() => {
@@ -344,19 +366,83 @@ export function ColorField({
     "#111217",
   ];
   return (
-    <div className={`setting color-setting ${disabled ? "disabled" : ""}`}>
-      <span>{label}</span>
-      <button
-        className="color-swatch"
-        type="button"
-        disabled={disabled}
-        aria-label={`Edit ${label}`}
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        <i style={{ backgroundColor: value }} />
-        <span>{value.toUpperCase()}</span>
-      </button>
+    <div
+      className={`setting color-setting ${disabled ? "disabled" : ""}`}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(false);
+        }
+      }}
+    >
+      <label htmlFor={inputId}>{label}</label>
+      <div className="color-entry">
+        <button
+          className="color-swatch"
+          type="button"
+          disabled={disabled}
+          aria-label={`Edit ${label}`}
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          <i style={{ backgroundColor: value }} />
+        </button>
+        <input
+          id={inputId}
+          aria-label={`${label} HEX`}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          value={text}
+          maxLength={7}
+          disabled={disabled}
+          onChange={(event) => {
+            setText(event.target.value);
+            setError("");
+            if (isHexColor(event.target.value)) onChange(event.target.value);
+          }}
+          onBlur={() =>
+            setError(
+              isHexColor(text) ? "" : "Use #RRGGBB, for example #9B85FF.",
+            )
+          }
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <button
+          className="copy-color"
+          aria-label={`Copy ${label} HEX`}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(value.toUpperCase());
+              setCopyStatus("Copied");
+            } catch {
+              setCopyStatus("Select the HEX and press Ctrl+C.");
+            }
+          }}
+        >
+          <i className="fa-regular fa-copy" aria-hidden="true" />
+        </button>
+      </div>
+      {ratio !== undefined && (
+        <small className="contrast-result">
+          {ratio.toFixed(2)}:1 · AA {ratio >= 4.5 ? "pass" : "fail"}
+        </small>
+      )}
+      {error && (
+        <small id={`${inputId}-error`} className="field-error" role="alert">
+          {error}
+        </small>
+      )}
+      {copyStatus && (
+        <small className="copy-status" role="status">
+          {copyStatus}
+        </small>
+      )}
       {open && !disabled && (
         <div className="inline-color">
           <div
@@ -467,20 +553,6 @@ export function ColorField({
               }
             />
           </div>
-          <label>
-            HEX
-            <input
-              aria-label={`${label} HEX`}
-              value={text}
-              maxLength={7}
-              onChange={(e) => {
-                setText(e.target.value);
-                if (/^#[0-9a-f]{6}$/i.test(e.target.value))
-                  onChange(e.target.value);
-              }}
-              onBlur={() => setText(value)}
-            />
-          </label>
           <div className="color-samples">
             {samples.map((color) => (
               <button

@@ -18,6 +18,7 @@ local HasEntityClearLosToEntity = HasEntityClearLosToEntity
 local GetEntityBoneIndexByName = GetEntityBoneIndexByName
 local GetEntityBonePosition_2 = GetEntityBonePosition_2
 local GetEntityModel = GetEntityModel
+local GetVehiclePedIsIn = GetVehiclePedIsIn
 local IsDisabledControlJustPressed = IsDisabledControlJustPressed
 local DisableControlAction = DisableControlAction
 local DisablePlayerFiring = DisablePlayerFiring
@@ -155,9 +156,16 @@ local function shouldHide(option, distance, endCoords, entityHit, entityType, en
         return true
     end
 
-    if entityModel and Config.Interaction.hideExternalEntitiesInVehicle and cache.vehicle
-        and entityHit ~= cache.vehicle then
-        return true
+    if entityModel then
+        local vehicle = GetVehiclePedIsIn(cache.ped, false)
+
+        if vehicle ~= 0 then
+            if entityHit == vehicle then
+                if Config.Interaction.hideCurrentVehicleInVehicle ~= false then return true end
+            elseif Config.Interaction.hideExternalEntitiesInVehicle then
+                return true
+            end
+        end
     end
 
     local bone = entityModel and option.bones or nil

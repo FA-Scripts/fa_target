@@ -98,6 +98,12 @@ export function TargetDisplay({
     "--menu-y": `${menuY}px`,
     "--connector-length": `${connectorLength}px`,
     "--connector-angle": `${connectorAngle}deg`,
+    ...(preview
+      ? {
+          width: `${(panelSize.width + 44) * theme.scale}px`,
+          height: `${(panelSize.height + 50) * theme.scale}px`,
+        }
+      : {}),
     opacity,
   } as CSSProperties;
 
@@ -201,6 +207,22 @@ export function TargetDisplay({
                   } as CSSProperties
                 }
                 key={`${option.targetType}-${option.targetId}-${option.zoneId ?? 0}`}
+                onKeyDown={(event) => {
+                  if (
+                    (event.key === "Enter" || event.key === " ") &&
+                    !event.repeat
+                  ) {
+                    event.preventDefault();
+                    onBegin?.(option);
+                  }
+                }}
+                onKeyUp={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onCancel?.();
+                  }
+                }}
+                onBlur={onCancel}
                 onMouseDown={() => onBegin?.(option)}
                 onMouseUp={onCancel}
                 onMouseLeave={onCancel}

@@ -60,6 +60,9 @@ Config.Interaction = {
     -- Hide external targets while the player is inside a vehicle.
     hideExternalEntitiesInVehicle = true,
 
+    -- Hide targets on the occupied vehicle while seated inside it.
+    hideCurrentVehicleInVehicle = true,
+
     -- Disable interaction while dead or handcuffed.
     suspendWhenDead = true,
     suspendWhenCuffed = true,

@@ -14,6 +14,13 @@ import {
 } from "./theme";
 import { ColorField, NumberField, Choice, Toggle } from "./Controls";
 import { TargetDisplay } from "./TargetDisplay";
+import {
+  activePalette as findActivePalette,
+  sectionDefaults,
+  sectionFields,
+  sectionNames,
+  themeKey,
+} from "./editorState";
 import { playSound } from "./sound";
 
 export type EditorState = {
@@ -29,7 +36,6 @@ const screenshotFiles = Object.keys(
   import.meta.glob("/public/preview/game.{jpg,png,webp}"),
 );
 const screenshot = screenshotFiles[0]?.replace("/public/", "./");
-const sectionNames = ["Colors", "Shape", "Layout", "Behavior", "Accessibility"];
 const storage = {
   get(key: string) {
     try {
@@ -136,10 +142,11 @@ export function ThemeEditor({
   const dialog = useRef<HTMLElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    dialog.current?.querySelector<HTMLButtonElement>(".icon-btn")?.focus();
+    dialog.current?.focus();
     return () => previous?.focus();
   }, []);
-  const can = (key: keyof Theme) => state.admin || state.allowed[key] === true;
+  const can = (key: keyof Theme) =>
+    saveState !== "saving" && (state.admin || state.allowed[key] === true);
   const updateTheme = (input: Partial<Theme>) => {
     const next = { ...draft };
     (Object.keys(input) as (keyof Theme)[]).forEach((key) => {
@@ -148,8 +155,40 @@ export function ThemeEditor({
     setDraft(normalizeTheme(next, draft, fonts));
     setSaveState("idle");
     setNotice("");
-    void fetchNui("previewTheme", next);
+    void fetchNui("previewTheme", normalizeTheme(next, draft, fonts));
   };
+  const dirty =
+    themeKey(draft) !==
+      themeKey(normalizeTheme(state.snapshot, undefined, fonts)) ||
+    Boolean(
+      state.allowModeSwitch && gameMode !== (state.interactionMode ?? "focus"),
+    );
+  const saving = useRef(false);
+  const save = async () => {
+    if (!dirty || saving.current) return;
+    saving.current = true;
+    setSaveState("saving");
+    try {
+      const response = await fetchNui<{ ok?: boolean }>("saveTheme", {
+        ...draft,
+        interactionMode: gameMode,
+      });
+      if (response?.ok === false) throw new Error();
+      if (isBrowser) onClose();
+    } catch {
+      setSaveState("error");
+      setNotice("Could not save. Try again.");
+    } finally {
+      saving.current = false;
+    }
+  };
+  const resetSection = () => {
+    const defaults = normalizeTheme(state.resetTheme, undefined, fonts);
+    updateTheme(sectionDefaults(section, defaults, can));
+    if (section === "Behavior" && state.allowModeSwitch)
+      setGameMode(state.interactionMode ?? "focus");
+  };
+  const activePalette = findActivePalette(draft);
   const cancelHold = () => {
     clearTimeout(holdTimer.current);
     holdTimer.current = undefined;
@@ -289,14 +328,28 @@ export function ThemeEditor({
     <div className="editor-backdrop">
       <section
         ref={dialog}
+        tabIndex={-1}
         className="editor creator"
         role="dialog"
         aria-modal="true"
         aria-label="Theme creator"
         onKeyDown={(event) => {
-          if (event.key === "Escape" && saveState === "saving") {
+          if (
+            (event.ctrlKey || event.metaKey) &&
+            event.key.toLowerCase() === "s"
+          ) {
+            event.preventDefault();
+            void save();
+            return;
+          }
+          if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
+            if (saving.current) return;
+            if (exchange) setExchange(null);
+            else if (confirmReset) setConfirmReset(false);
+            else if (onboarding) dismissOnboarding();
+            else onClose();
             return;
           }
           if (event.key !== "Tab") return;
@@ -347,118 +400,8 @@ export function ThemeEditor({
           </div>
         )}
         <div className="creator-body">
-          <aside className="preview-column">
-            <div className="preview-toolbar" aria-label="Preview mode">
-              {Object.entries(modeLabels).map(([id, label]) => (
-                <button
-                  key={id}
-                  aria-pressed={mode === id}
-                  onClick={() => {
-                    setMode(id);
-                    playSound("open", draft);
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <p className="setting-note preview-context">
-              Preview only · Gameplay:{" "}
-              {modeLabels[state.interactionMode ?? "focus"]}.{" "}
-              {state.allowModeSwitch
-                ? "Change your mode in Behavior."
-                : "Selected by the server owner."}
-            </p>
-            <div
-              className={`preview-stage app mode-${mode} preset-${draft.preset} ${draft.animations ? "motion" : ""} ${draft.highContrast ? "high-contrast" : ""} background-${background}`}
-              style={{
-                ...themeVariables(draft, fonts),
-                ...(background === "game" && screenshot
-                  ? { backgroundImage: `url("${screenshot}")` }
-                  : {}),
-              }}
-            >
-              <TargetDisplay
-                items={previewOptions(count, long, states)}
-                mode={mode}
-                theme={draft}
-                showCursorHint={
-                  mode === "classic" && draft.cursorHint !== "never"
-                }
-                anchor={{ visible: true, x: 0.08, y: 0.18 }}
-                preview
-                holding={holding}
-                status={feedback}
-                onBegin={begin}
-                onCancel={cancelHold}
-              />
-            </div>
-            <div className="preview-settings">
-              <Choice
-                label="Background"
-                value={background}
-                options={[
-                  { value: "dark", label: "Dark" },
-                  { value: "light", label: "Light" },
-                  ...(screenshot
-                    ? [{ value: "game", label: "Game screenshot" }]
-                    : []),
-                ]}
-                onChange={setBackground}
-              />
-              {!screenshot && (
-                <p className="setting-note">
-                  Game background is awaiting the supplied screenshot.
-                </p>
-              )}
-              <Choice
-                label="Options"
-                value={String(count)}
-                options={[1, 3, 6].map((n) => ({
-                  value: String(n),
-                  label: String(n),
-                }))}
-                onChange={(v) => setCount(Number(v))}
-              />
-              <Toggle
-                label="Long labels"
-                checked={long}
-                disabled={false}
-                onChange={setLong}
-              />
-              <Toggle
-                label="Interaction states"
-                checked={states}
-                disabled={false}
-                onChange={setStates}
-              />
-            </div>
-            <div className="preset-grid" aria-label="Theme presets">
-              {presets
-                .filter(
-                  (p) =>
-                    state.presets.includes(p) ||
-                    (p === "minimal" && state.presets.includes("compact")),
-                )
-                .map((p) => (
-                  <button
-                    key={p}
-                    aria-pressed={draft.preset === p}
-                    className={draft.preset === p ? "active" : ""}
-                    disabled={!can("preset")}
-                    onClick={() =>
-                      updateTheme({ ...presetThemes[p], preset: p })
-                    }
-                  >
-                    {presetLabels[p]}
-                  </button>
-                ))}
-            </div>
-            <button className="text-button" onClick={() => setOnboarding(true)}>
-              How interaction modes work
-            </button>
-          </aside>
           <div className="settings-column">
+            <h3 className="settings-label">Settings</h3>
             <nav className="section-tabs" aria-label="Settings sections">
               {sectionNames.map((name) => (
                 <button
@@ -471,13 +414,32 @@ export function ThemeEditor({
               ))}
             </nav>
             <section className="settings-content" aria-label={section}>
-              <h3>{section}</h3>
+              <div className="section-heading">
+                <h3>{section}</h3>
+                <button
+                  className="text-button"
+                  disabled={
+                    saveState === "saving" ||
+                    !(
+                      sectionFields[section].some(can) ||
+                      (section === "Behavior" && state.allowModeSwitch)
+                    )
+                  }
+                  onClick={resetSection}
+                >
+                  Reset section
+                </button>
+              </div>
               {section === "Colors" && (
                 <>
+                  <p className="setting-note">
+                    Palette: {activePalette ?? "Custom"}
+                  </p>
                   <div className="palette-list">
                     {Object.keys(palettes).map((name) => (
                       <button
                         key={name}
+                        aria-pressed={activePalette === name}
                         disabled={
                           !["accent", "surface", "text", "mutedText"].some(
                             (key) => can(key as keyof Theme),
@@ -502,12 +464,21 @@ export function ThemeEditor({
                             mutedText: "Secondary text",
                           }[key]
                         }
+                        contrastSurface={
+                          key === "text" || key === "mutedText"
+                            ? draft.surface
+                            : undefined
+                        }
                         value={draft[key]}
                         disabled={!can(key)}
                         onChange={(value) => updateTheme({ [key]: value })}
                       />
                     ),
                   )}
+                  <p className="setting-note">
+                    Contrast measures the palette against Surface. Transparency
+                    and game backgrounds affect the final result.
+                  </p>
                   <h4>Interaction categories</h4>
                   <label className="category-name">
                     Category
@@ -663,6 +634,130 @@ export function ThemeEditor({
               )}
             </section>
           </div>
+          <aside className="preview-column">
+            <div className="group-heading">
+              <h3>Preview mode</h3>
+              <button
+                className="help-button"
+                aria-label="How interaction modes work"
+                onClick={() => setOnboarding(!onboarding)}
+              >
+                <i className="fa-solid fa-question" aria-hidden="true" />
+              </button>
+              <span className="live-label">Live preview</span>
+            </div>
+            <div className="preview-toolbar" aria-label="Preview mode">
+              {Object.entries(modeLabels).map(([id, label]) => (
+                <button
+                  key={id}
+                  aria-pressed={mode === id}
+                  onClick={() => {
+                    setMode(id);
+                    playSound("open", draft);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="setting-note preview-context">
+              Preview only · Gameplay:{" "}
+              {modeLabels[state.interactionMode ?? "focus"]}.{" "}
+              {state.allowModeSwitch
+                ? "Change your mode in Behavior."
+                : "Selected by the server owner."}
+            </p>
+            <div
+              className={`preview-stage app mode-${mode} preset-${draft.preset} ${draft.animations ? "motion" : ""} ${draft.highContrast ? "high-contrast" : ""} background-${background}`}
+              style={{
+                ...themeVariables(draft, fonts),
+                ...(background === "game" && screenshot
+                  ? { backgroundImage: `url("${screenshot}")` }
+                  : {}),
+              }}
+            >
+              <TargetDisplay
+                items={previewOptions(count, long, states)}
+                mode={mode}
+                theme={draft}
+                showCursorHint={
+                  mode === "classic" && draft.cursorHint !== "never"
+                }
+                anchor={{ visible: true, x: 0.08, y: 0.18 }}
+                preview
+                holding={holding}
+                status={feedback}
+                onBegin={begin}
+                onCancel={cancelHold}
+              />
+            </div>
+            <div className="preview-settings">
+              <Choice
+                label="Background"
+                value={background}
+                options={[
+                  { value: "dark", label: "Dark" },
+                  { value: "light", label: "Light" },
+                  ...(screenshot
+                    ? [{ value: "game", label: "Game screenshot" }]
+                    : []),
+                ]}
+                onChange={setBackground}
+              />
+              <Choice
+                label="Options"
+                value={String(count)}
+                options={[1, 3, 6].map((n) => ({
+                  value: String(n),
+                  label: String(n),
+                }))}
+                onChange={(v) => setCount(Number(v))}
+              />
+              <Toggle
+                label="Long labels"
+                description="Test wrapping with longer action names."
+                checked={long}
+                disabled={false}
+                onChange={setLong}
+              />
+              <Toggle
+                label="Interaction states"
+                description="Show missing items, restricted access and cooldowns."
+                checked={states}
+                disabled={false}
+                onChange={setStates}
+              />
+            </div>
+            <div className="preset-grid" aria-label="Theme presets">
+              {presets
+                .filter(
+                  (p) =>
+                    state.presets.includes(p) ||
+                    (p === "minimal" && state.presets.includes("compact")),
+                )
+                .map((p) => (
+                  <button
+                    key={p}
+                    aria-pressed={draft.preset === p}
+                    className={draft.preset === p ? "active" : ""}
+                    disabled={!can("preset")}
+                    onClick={() =>
+                      updateTheme({ ...presetThemes[p], preset: p })
+                    }
+                  >
+                    <span
+                      className={`preset-mini mini-${p}`}
+                      aria-hidden="true"
+                    >
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                    <span>{presetLabels[p]}</span>
+                  </button>
+                ))}
+            </div>
+          </aside>
         </div>
         <footer>
           <div className="theme-files">
@@ -693,6 +788,9 @@ export function ThemeEditor({
               onChange={(e) => void importTheme(e.target.files?.[0])}
             />
           </div>
+          <span className="dirty-status" role="status">
+            {dirty ? "Unsaved changes" : "No unsaved changes"}
+          </span>
           <button
             className="reset-button"
             disabled={saveState === "saving"}
@@ -705,21 +803,8 @@ export function ThemeEditor({
           </button>
           <button
             className="primary"
-            disabled={saveState === "saving"}
-            onClick={async () => {
-              setSaveState("saving");
-              try {
-                const response = await fetchNui<{ ok?: boolean }>("saveTheme", {
-                  ...draft,
-                  interactionMode: gameMode,
-                });
-                if (response?.ok === false) throw new Error();
-                if (isBrowser) onClose();
-              } catch {
-                setSaveState("error");
-                setNotice("Could not save. Try again.");
-              }
-            }}
+            disabled={!dirty || saveState === "saving"}
+            onClick={() => void save()}
           >
             {saveState === "saving" ? "Saving…" : "Save theme"}
           </button>
